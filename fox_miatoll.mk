@@ -19,6 +19,8 @@
 #
 
 # OrangeFox-specific settings #
+FOX_VARIANT := FBEv2
+OF_MAINTAINER := iHSAN
 
 # screen settings
 OF_SCREEN_H := 2400
@@ -73,3 +75,4 @@ OF_ENABLE_ALL_PARTITION_TOOLS := 1
 # use legacy code for wrong clock issues
 OF_USE_LEGACY_TIME_FIXUP := 1
 #
+
