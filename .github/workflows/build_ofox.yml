@@ -1,0 +1,129 @@
+name: Build OrangeFox Recovery
+
+on:
+  workflow_dispatch:
+
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+
+    permissions:
+      contents: write
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v5
+              
+    - name: Clean-up
+      uses: rokibhasansagar/slimhub_actions@main
+
+    - name: Swap Space
+      uses: pierotofy/set-swap-space@master
+      with:
+        swap-size-gb: 12
+    
+    - name: Setup ccache
+      uses: hendrikmuhs/ccache-action@v1.2
+      with:
+        max-size: "10G"
+        
+    - name: Install build dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y software-properties-common
+        sudo apt-get update
+
+        sudo apt-get install -y \
+           git git-core zip curl wget aria2
+
+    - name: Setup repo tool
+      run: |
+        mkdir -p ~/bin
+        curl http://commondatastorage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+        chmod a+x ~/bin/repo
+
+    - name: Clone and run setup scripts
+      run: |
+        git clone https://github.com/kibria5/scripts.git ~/scripts
+        cd ~/scripts
+        bash setup/android_build_env.sh
+
+    - name: Setup Git configuration
+      run: |
+        git config --global user.name "ihsanulrahman"
+        git config --global user.email "ihsanulrahman@gmail.com"
+        git config --global color.ui false
+        
+    - name: Sync OrangeFox source
+      run: |
+        mkdir -p ~/OrangeFox_sync
+        cd ~/OrangeFox_sync
+        git clone https://gitlab.com/OrangeFox/sync.git
+        cd ~/OrangeFox_sync/sync/
+        ./orangefox_sync.sh --branch 12.1 --path ~/fox_12.1
+
+    - name: Clone device tree
+      run: |
+        cd ~/fox_12.1
+        git clone -b v2 https://github.com/ihsanulrahman/ofox-device_xiaomi_miatoll device/xiaomi/miatoll
+
+    - name: Build OrangeFox
+      run: |
+        cd ~/fox_12.1
+        export ALLOW_MISSING_DEPENDENCIES=true
+        export FOX_BUILD_DEVICE=miatoll
+        export LC_ALL="C"
+        source build/envsetup.sh
+        lunch twrp_miatoll-eng
+        mka adbd recoveryimage
+
+    - name: Find OrangeFox ZIP file
+      run: |
+        cd ~/fox_12.1
+        echo "Searching for OrangeFox ZIP file..."
+        
+        ZIP_FILE=$(find . -name "OrangeFox*miatol*.zip" -type f | head -1)
+        
+        if [ -z "$ZIP_FILE" ]; then
+          ZIP_FILE=$(find out/target/product/miatoll/ -name "*.zip" -type f | head -1)
+        fi
+        
+        if [ -n "$ZIP_FILE" ]; then
+          echo "ZIP_FILE=$ZIP_FILE" >> $GITHUB_ENV
+          echo "ZIP_FILENAME=$(basename $ZIP_FILE)" >> $GITHUB_ENV
+          sha256sum "$ZIP_FILE" > "${ZIP_FILE}.sha256"
+          echo "SHA256SUM=$(cat ${ZIP_FILE}.sha256 | cut -d' ' -f1)" >> $GITHUB_ENV
+        fi
+
+    - name: Upload success to Telegram
+      if: success() && env.ZIP_FILE != ''
+      uses: appleboy/telegram-action@master
+      with:
+        to: ${{ secrets.TELEGRAM_CHAT_ID }}
+        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        message: |
+          🦊 OrangeFox Build Successful! ✅
+          📱 Device: miatoll
+          🌿 Branch: 12.1
+          🔢 Build: ${{ github.run_number }}
+        format: markdown
+
+    - name: Upload ZIP file to Telegram
+      if: success() && env.ZIP_FILE != ''
+      uses: appleboy/telegram-action@master
+      with:
+        to: ${{ secrets.TELEGRAM_CHAT_ID }}
+        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        document: ~/fox_12.1/${{ env.ZIP_FILE }}
+
+    - name: Upload build failure to Telegram
+      if: failure()
+      uses: appleboy/telegram-action@master
+      with:
+        to: ${{ secrets.TELEGRAM_CHAT_ID }}
+        token: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+        message: |
+          ❌ OrangeFox Build Failed!
+          📱 Device: miatoll
+          🔢 Build: ${{ github.run_number }}
