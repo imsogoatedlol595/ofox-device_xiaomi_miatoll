@@ -19,8 +19,8 @@
 #
 
 # OrangeFox-specific settings #
-FOX_VARIANT := FBEv2
-OF_MAINTAINER := iHSAN
+FOX_VARIANT := FBEv1
+OF_MAINTAINER := @iput-object
 
 # screen settings
 OF_SCREEN_H := 2400
