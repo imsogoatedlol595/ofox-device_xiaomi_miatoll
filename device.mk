@@ -61,7 +61,7 @@ ifeq ($(FOX_VARIANT),FBEv2)
   $(call inherit-product, $(SRC_TARGET_DIR)/product/emulated_storage.mk)
 
   # shipping API
-  PRODUCT_SHIPPING_API_LEVEL := 30
+  PRODUCT_SHIPPING_API_LEVEL := 29
 
 PRODUCT_PROPERTY_OVERRIDES += \
     ro.crypto.dm_default_key.options_format.version=2 \
