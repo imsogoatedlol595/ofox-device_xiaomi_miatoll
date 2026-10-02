@@ -39,7 +39,7 @@ jobs:
           sudo apt-get install -y software-properties-common
           sudo apt-get update
           sudo apt-get install -y \
-            git git-core zip curl wget aria2
+            git git-core zip curl wget aria2 dos2unix
 
       - name: Setup repo tool
         run: |
@@ -72,14 +72,24 @@ jobs:
           cd ~/fox_12.1
           git clone -b v2 https://github.com/ihsanulrahman/ofox-device_xiaomi_miatoll device/xiaomi/miatoll
 
+      - name: Fix vendorsetup permissions and line endings
+        run: |
+          cd ~/fox_12.1/device/xiaomi/miatoll
+          if [ -f vendorsetup.sh ]; then
+            dos2unix vendorsetup.sh || sed -i 's/\r$//' vendorsetup.sh
+            chmod +x vendorsetup.sh
+          fi
+
       - name: Build OrangeFox
         run: |
           cd ~/fox_12.1
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=miatoll
           export LC_ALL="C"
+          
+          # Source environment setup
           source build/envsetup.sh
-          lunch twrp_miatoll-eng
+          lunch twrp_miatoll-eng || lunch omni_miatoll-eng
           mka adbd recoveryimage
 
       - name: Find OrangeFox ZIP file
