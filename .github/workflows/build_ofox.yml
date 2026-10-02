@@ -72,6 +72,17 @@ jobs:
           cd ~/fox_12.1
           git clone -b v2 https://github.com/ihsanulrahman/ofox-device_xiaomi_miatoll device/xiaomi/miatoll
 
+      - name: Debug Installed Lunch Targets
+        run: |
+          cd ~/fox_12.1
+          source build/envsetup.sh
+          
+          echo "=== SEARCHING FOR DEVICE MAKEFILES ==="
+          find device/xiaomi/miatoll/ -maxdepth 2 -name "*.mk"
+          
+          echo "=== ANDROIDPRODUCTS.MK CONTENTS ==="
+          find device/ vendor/ -name "AndroidProducts.mk" -exec echo "--- {} ---" \; -exec cat {} \;
+
       - name: Fix vendorsetup permissions and line endings
         run: |
           cd ~/fox_12.1/device/xiaomi/miatoll
@@ -86,8 +97,6 @@ jobs:
           export ALLOW_MISSING_DEPENDENCIES=true
           export FOX_BUILD_DEVICE=miatoll
           export LC_ALL="C"
-          
-          # Source environment setup
           source build/envsetup.sh
           lunch twrp_miatoll-eng || lunch omni_miatoll-eng
           mka adbd recoveryimage
